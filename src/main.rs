@@ -21,7 +21,7 @@ fn setup(
         .spawn((
             TransformBundle::from_transform(Transform::from_xyz(0.0, 0.0, 0.0)),
             InheritedVisibility::default(),
-            Cube,
+            Cube::default(),
         ))
         .with_children(|parent| {
             parent.spawn((
@@ -63,79 +63,148 @@ fn setup(
 
 fn keyboard_input(
     keys: Res<ButtonInput<KeyCode>>,
-    mut cube_q: Query<(Entity, &mut Transform), (With<Cube>, Without<CubeChild>)>,
+    mut cube_q: Query<(Entity, &mut Transform, &GlobalTransform, &mut Cube), (With<Cube>, Without<CubeChild>)>,
     mut cube_child_q: Query<(&mut Transform, &GlobalTransform), (With<CubeChild>, Without<Cube>)>,
     mut commands: Commands,
 ) {
     if keys.just_released(KeyCode::ArrowRight) {
-        for (entity, mut transform) in cube_q.iter_mut() {
-            transform.translation.x += 0.5;
-            commands.entity(entity).insert(Animator::new(
-                Tween::new(
-                    EaseFunction::QuadraticInOut,
-                    Duration::from_secs(1),
-                    TransformRotationLens {
-                        start: transform.rotation,
-                        end: transform.rotation
-                            * Quat::from_axis_angle(Vec3::Y, 90.0f32.to_radians()),
-                    },
-                )
-                .with_completed_event(1),
-            ));
+        for (entity, mut transform, global_transform, mut cube) in cube_q.iter_mut() {
+            if !cube.rotating {
+                transform.translation.x += 0.5;
+                commands.entity(entity).insert(Animator::new(
+                    Tween::new(
+                        EaseFunction::QuadraticIn,
+                        Duration::from_millis(300),
+                        TransformRotationLens {
+                            start: transform.rotation,
+                            end: transform.rotation
+                                * Quat::from_axis_angle(global_transform.affine().inverse().transform_vector3(Vec3::Y), 90.0f32.to_radians()),
+                        },
+                    )
+                        .with_completed_event(1),
+                ));
+                for (mut transform_child, global_transform_child) in cube_child_q.iter_mut() {
+                    transform_child.translation += global_transform_child.affine().inverse().transform_vector3(Vec3::new(-0.5, 0.0, 0.0));
+                }
+                cube.rotating = true;
+            }
         }
-        for (mut transform_child, global_transform_child) in cube_child_q.iter_mut() {
-            transform_child.translation += global_transform_child.affine().inverse().transform_vector3(Vec3::new(-0.5, 0.0, 0.0));
+    } else if keys.just_released(KeyCode::ArrowLeft) {
+        for (entity, mut transform, global_transform, mut cube) in cube_q.iter_mut() {
+            if !cube.rotating {
+                transform.translation.x += -0.5;
+                commands.entity(entity).insert(Animator::new(
+                    Tween::new(
+                        EaseFunction::QuadraticIn,
+                        Duration::from_millis(300),
+                        TransformRotationLens {
+                            start: transform.rotation,
+                            end: transform.rotation
+                                * Quat::from_axis_angle(global_transform.affine().inverse().transform_vector3(Vec3::Y), -90.0f32.to_radians()),
+                        },
+                    )
+                        .with_completed_event(2),
+                ));
+                for (mut transform_child, global_transform_child) in cube_child_q.iter_mut() {
+                    transform_child.translation += global_transform_child.affine().inverse().transform_vector3(Vec3::new(0.5, 0.0, 0.0));
+                }
+                cube.rotating = true;
+            }
+        }
+    } else if keys.just_released(KeyCode::ArrowUp) {
+        for (entity, mut transform, global_transform, mut cube) in cube_q.iter_mut() {
+            if !cube.rotating {
+                transform.translation.y += 0.5;
+                commands.entity(entity).insert(Animator::new(
+                    Tween::new(
+                        EaseFunction::QuadraticIn,
+                        Duration::from_millis(300),
+                        TransformRotationLens {
+                            start: transform.rotation,
+                            end: transform.rotation
+                                * Quat::from_axis_angle(global_transform.affine().inverse().transform_vector3(Vec3::X), -90.0f32.to_radians()),
+                        },
+                    )
+                        .with_completed_event(3),
+                ));
+                for (mut transform_child, global_transform_child) in cube_child_q.iter_mut() {
+                    transform_child.translation += global_transform_child.affine().inverse().transform_vector3(Vec3::new(0.0, -0.5, 0.0));
+                }
+                cube.rotating = true;
+            }
+        }
+    } else if keys.just_released(KeyCode::ArrowDown) {
+        for (entity, mut transform, global_transform, mut cube) in cube_q.iter_mut() {
+            if !cube.rotating {
+                transform.translation.y += -0.5;
+                commands.entity(entity).insert(Animator::new(
+                    Tween::new(
+                        EaseFunction::QuadraticIn,
+                        Duration::from_millis(300),
+                        TransformRotationLens {
+                            start: transform.rotation,
+                            end: transform.rotation
+                                * Quat::from_axis_angle(global_transform.affine().inverse().transform_vector3(Vec3::X), 90.0f32.to_radians()),
+                        },
+                    )
+                        .with_completed_event(4),
+                ));
+                for (mut transform_child, global_transform_child) in cube_child_q.iter_mut() {
+                    transform_child.translation += global_transform_child.affine().inverse().transform_vector3(Vec3::new(0.0, 0.5, 0.0));
+                }
+                cube.rotating = true;
+            }
         }
     }
-    if keys.just_released(KeyCode::ArrowLeft) {
-        for (entity, mut transform) in cube_q.iter_mut() {
-            transform.translation.x += -0.5;
-            commands.entity(entity).insert(Animator::new(
-                Tween::new(
-                    EaseFunction::QuadraticInOut,
-                    Duration::from_secs(1),
-                    TransformRotationLens {
-                        start: transform.rotation,
-                        end: transform.rotation
-                            * Quat::from_axis_angle(Vec3::Y, -90.0f32.to_radians()),
-                    },
-                )
-                    .with_completed_event(2),
-            ));
-        }
-        for (mut transform_child, global_transform_child) in cube_child_q.iter_mut() {
-            transform_child.translation += global_transform_child.affine().inverse().transform_vector3(Vec3::new(0.5, 0.0, 0.0));
-        }
-    }
+    
 }
 
 fn tween_completed(
     mut tween_completed_event: EventReader<TweenCompleted>,
-    mut cube_q: Query<&mut Transform, (With<Cube>, Without<CubeChild>)>,
+    mut cube_q: Query<(&mut Transform, &mut Cube), Without<CubeChild>>,
     mut cube_child_q: Query<(&mut Transform, &GlobalTransform), (With<CubeChild>, Without<Cube>)>,
 ) {
     for tween_completed in tween_completed_event.read() {
         if tween_completed.user_data == 1 {
-            for mut transform in cube_q.iter_mut() {
+            for (mut transform, mut cube) in cube_q.iter_mut() {
                 transform.translation.x += 0.5;
+                cube.rotating = false;
             }
             for (mut transform_child, global_transform_child) in cube_child_q.iter_mut() {
                 transform_child.translation += global_transform_child.affine().inverse().transform_vector3(Vec3::new(-0.5, 0.0, 0.0));
             }
         } else if tween_completed.user_data == 2 {
-            for mut transform in cube_q.iter_mut() {
+            for (mut transform, mut cube) in cube_q.iter_mut() {
                 transform.translation.x += -0.5;
+                cube.rotating = false;
             }
             for (mut transform_child, global_transform_child) in cube_child_q.iter_mut() {
                 transform_child.translation += global_transform_child.affine().inverse().transform_vector3(Vec3::new(0.5, 0.0, 0.0));
             }
-        }
-        
+        } else if tween_completed.user_data == 3 {
+            for (mut transform, mut cube) in cube_q.iter_mut() {
+                transform.translation.y += 0.5;
+                cube.rotating = false;
+            }
+            for (mut transform_child, global_transform_child) in cube_child_q.iter_mut() {
+                transform_child.translation += global_transform_child.affine().inverse().transform_vector3(Vec3::new(0.0, -0.5, 0.0));
+            }
+        } else if tween_completed.user_data == 4 {
+            for (mut transform, mut cube) in cube_q.iter_mut() {
+                transform.translation.y += -0.5;
+                cube.rotating = false;
+            }
+            for (mut transform_child, global_transform_child) in cube_child_q.iter_mut() {
+                transform_child.translation += global_transform_child.affine().inverse().transform_vector3(Vec3::new(0.0, 0.5, 0.0));
+            }
+        }        
     }
 }
 
-#[derive(Component)]
-struct Cube;
+#[derive(Component, Default)]
+struct Cube {
+    rotating: bool
+}
 
 #[derive(Component)]
 struct CubeChild;
