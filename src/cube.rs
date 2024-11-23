@@ -3,7 +3,11 @@ use crate::{GameState, SceneAssets};
 use bevy::app::{App, Update};
 use bevy::hierarchy::Children;
 use bevy::math::Quat;
-use bevy::prelude::{default, BuildChildren, Commands, Component, Entity, EventReader, GlobalTransform, InheritedVisibility, OnEnter, Plugin, Query, Res, SceneBundle, Transform, TransformBundle, Vec3, With, Without};
+use bevy::prelude::{
+    default, BuildChildren, Commands, Component, Entity, EventReader, GlobalTransform,
+    InheritedVisibility, OnEnter, Plugin, Query, Res, SceneBundle, Transform, TransformBundle,
+    Vec3, With, Without,
+};
 use bevy_tweening::lens::TransformRotationLens;
 use bevy_tweening::{Animator, EaseFunction, Tween, TweenCompleted};
 use std::time::Duration;
@@ -16,10 +20,7 @@ impl Plugin for CubePlugin {
             .add_systems(Update, (roll, tween_completed));
     }
 }
-pub fn spawn_cube(
-    mut commands: Commands,
-    scene_assets: Res<SceneAssets>,
-) {
+pub fn spawn_cube(mut commands: Commands, scene_assets: Res<SceneAssets>) {
     commands
         .spawn((
             TransformBundle::from_transform(Transform::from_xyz(0.0, 0.0, 0.0)),
@@ -30,12 +31,11 @@ pub fn spawn_cube(
             parent.spawn((
                 SceneBundle {
                     scene: scene_assets.rubiks_cube.clone(),
-                    transform: Transform::from_translation(Vec3::new(0.0, -0.5, 0.5)).with_scale(Vec3::splat(1. / 6.)),
+                    transform: Transform::from_translation(Vec3::new(0.0, -0.5, 0.5))
+                        .with_scale(Vec3::splat(1. / 6.)),
                     ..default()
                 },
-                CubeChild {
-                    scale: 1. / 6.
-                },
+                CubeChild { scale: 1. / 6. },
             ));
         });
 }
@@ -79,14 +79,7 @@ fn roll(
                     .with_completed_event(roll_event.get_id()),
                 ));
                 for &child in children.iter() {
-                    if let Ok((mut transform_child, global_transform_child, cube_child)) =
-                        cube_child_q.get_mut(child)
-                    {
-                        transform_child.translation -= global_transform_child
-                            .affine()
-                            .inverse()
-                            .transform_vector3(roll_translation) * cube_child.scale;
-                    }
+                    translate_child(&mut cube_child_q, child, roll_translation);
                 }
                 cube.rotating = true;
             }
@@ -114,22 +107,37 @@ fn roll_axis(roll_event: &RollEvent) -> Vec3 {
 
 fn tween_completed(
     mut tween_completed_event: EventReader<TweenCompleted>,
-    mut cube_q: Query<(&mut Transform, &mut Cube), Without<CubeChild>>,
+    mut cube_q: Query<(&mut Transform, &mut Cube, &Children), Without<CubeChild>>,
     mut cube_child_q: Query<(&mut Transform, &GlobalTransform, &CubeChild), Without<Cube>>,
 ) {
     for tween_completed in tween_completed_event.read() {
         let roll_event = RollEvent::from_id(tween_completed.user_data);
         let roll_trans = roll_translation(&roll_event);
-        for (mut transform, mut cube) in cube_q.iter_mut() {
+
+        if let Ok((mut transform, mut cube, children)) = cube_q.get_mut(tween_completed.entity) {
             transform.translation += roll_trans;
             cube.rotating = false;
+
+            for &child in children.iter() {
+                translate_child(&mut cube_child_q, child, roll_trans);
+            }
         }
-        for (mut transform_child, global_transform_child, cube_child) in cube_child_q.iter_mut() {
-            transform_child.translation -= global_transform_child
-                .affine()
-                .inverse()
-                .transform_vector3(roll_trans) * cube_child.scale;
-        }
+    }
+}
+
+fn translate_child(
+    cube_child_q: &mut Query<(&mut Transform, &GlobalTransform, &CubeChild), Without<Cube>>,
+    entity: Entity,
+    roll_trans: Vec3,
+) {
+    if let Ok((mut transform_child, global_transform_child, cube_child)) =
+        cube_child_q.get_mut(entity)
+    {
+        transform_child.translation -= global_transform_child
+            .affine()
+            .inverse()
+            .transform_vector3(roll_trans)
+            * cube_child.scale;
     }
 }
 

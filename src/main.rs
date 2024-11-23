@@ -5,7 +5,6 @@ mod roll_events;
 use crate::cube::CubePlugin;
 use crate::keyboard::KeyboardPlugin;
 use crate::roll_events::RollEventsPlugin;
-use bevy::gltf::Gltf;
 use bevy::prelude::*;
 use bevy_asset_loader::asset_collection::AssetCollection;
 use bevy_asset_loader::prelude::{ConfigureLoadingState, LoadingState, LoadingStateAppExt};
@@ -35,14 +34,6 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    commands.insert_resource(MaterialHandles {
-        blue: materials.add(Color::srgb_u8(124, 144, 255)),
-    });
-
-    commands.insert_resource(MeshHandles {
-        cube: meshes.add(Cuboid::new(1.0, 1.0, 1.0)),
-    });
-
     commands.spawn(PbrBundle {
         mesh: meshes.add(Plane3d::new(
             Vec3::new(0.0, 0.0, 1.0),
@@ -62,8 +53,17 @@ fn setup(
         ..default()
     });
 
+    commands.spawn(PointLightBundle {
+        point_light: PointLight {
+            shadows_enabled: true,
+            ..default()
+        },
+        transform: Transform::from_xyz(-10.0, -10.0, 10.0),
+        ..default()
+    });
+
     commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0.0, -10.0, 10.0)
+        transform: Transform::from_xyz(0.0, 0.0, 10.0)
             .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
         ..default()
     });
@@ -74,17 +74,6 @@ enum GameState {
     #[default]
     Loading,
     InGame,
-    GameOver,
-}
-
-#[derive(Resource)]
-struct MeshHandles {
-    cube: Handle<Mesh>,
-}
-
-#[derive(Resource)]
-struct MaterialHandles {
-    blue: Handle<StandardMaterial>,
 }
 
 #[derive(AssetCollection, Resource)]
