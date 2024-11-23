@@ -1,7 +1,9 @@
 mod cube;
 mod keyboard;
 mod roll_events;
+mod board;
 
+use crate::board::BoardPlugin;
 use crate::cube::CubePlugin;
 use crate::keyboard::KeyboardPlugin;
 use crate::roll_events::RollEventsPlugin;
@@ -18,6 +20,7 @@ fn main() {
             RollEventsPlugin,
             KeyboardPlugin,
             CubePlugin,
+            BoardPlugin,
         ))
         .init_state::<GameState>()
         .add_loading_state(
