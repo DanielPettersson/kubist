@@ -64,22 +64,12 @@ impl RollEvent {
         }
     }
 
-    pub fn from_id(id: u64, entity: Entity) -> Self {
-        match id {
-            1 => RollEvent::Right(entity),
-            2 => RollEvent::Left(entity),
-            3 => RollEvent::Up(entity),
-            4 => RollEvent::Down(entity),
-            id => panic!("Undefined roll event {id}"),
-        }
-    }
-
     pub fn roll_translation(&self) -> Vec3 {
         match self {
-            RollEvent::Right(_) => Vec3::new(0.5, 0.0, 0.0),
-            RollEvent::Left(_) => Vec3::new(-0.5, 0.0, 0.0),
-            RollEvent::Up(_) => Vec3::new(0.0, 0.5, 0.0),
-            RollEvent::Down(_) => Vec3::new(0.0, -0.5, 0.0),
+            RollEvent::Right(_) => Vec3::X,
+            RollEvent::Left(_) => Vec3::NEG_X,
+            RollEvent::Up(_) => Vec3::Y,
+            RollEvent::Down(_) => Vec3::NEG_Y,
         }
     }
 

@@ -1,16 +1,17 @@
-use crate::cube::{spawn_cube, RollingCubesCounter};
+use std::time::Duration;
+use crate::cube::{spawn_cube, RollDuration, RollingCubesCounter};
 use crate::roll_events::{RollEvent, RollInput};
 use crate::{GameState, SceneAssets};
 use bevy::app::{App, Plugin, Update};
 use bevy::prelude::{
-    in_state, Commands, Component, Entity, EventReader, EventWriter, IntoSystemConfigs, Local,
+    in_state, Commands, Component, Entity, EventReader, EventWriter, IntoSystemConfigs,
     NextState, OnEnter, Query, Res, ResMut, Resource, Startup,
 };
 use rand::Rng;
 
 pub struct BoardPlugin;
 
-const BOARD_SIZE: usize = 4;
+const BOARD_SIZE: usize = 3;
 
 impl Plugin for BoardPlugin {
     fn build(&self, app: &mut App) {
@@ -23,14 +24,17 @@ impl Plugin for BoardPlugin {
 
 fn init(mut commands: Commands) {
     commands.insert_resource(ShuffleCounter(0));
+    commands.insert_resource(LastRoll(None));
 }
 
 fn setup(
     mut commands: Commands,
     scene_assets: Res<SceneAssets>,
     mut shuffle_counter: ResMut<ShuffleCounter>,
+    mut last_roll: ResMut<LastRoll>,
 ) {
     shuffle_counter.0 += 0;
+    last_roll.0 = None;
 
     let mut board = Board {
         cubes: [[None; BOARD_SIZE]; BOARD_SIZE],
@@ -57,17 +61,21 @@ fn shuffle(
     mut roll_inputs: EventWriter<RollInput>,
     mut shuffle_counter: ResMut<ShuffleCounter>,
     mut next_state: ResMut<NextState<GameState>>,
-    mut last_roll: Local<Option<RollInput>>,
+    mut roll_duration: ResMut<RollDuration>,
+    last_roll: Res<LastRoll>,
 ) {
     if rolling_cubes_counter.0 == 0 {
-        let roll_input = random_roll(*last_roll);
+        let roll_input = random_roll(last_roll.0);
         roll_inputs.send(roll_input);
 
+        let new_roll_duration_ms = roll_duration.0.as_millis() as f32 * 0.95;
+        if new_roll_duration_ms > 75.0 {
+            roll_duration.0 = Duration::from_millis(new_roll_duration_ms as u64);
+        }
         shuffle_counter.0 += 1;
-        *last_roll = Some(roll_input);
     }
 
-    if shuffle_counter.0 > 50 {
+    if shuffle_counter.0 > 100 {
         next_state.set(GameState::InGame);
     }
 }
@@ -96,6 +104,7 @@ fn roll(
     mut roll_events: EventWriter<RollEvent>,
     mut query_board: Query<&mut Board>,
     rolling_cubes_counter: Res<RollingCubesCounter>,
+    mut last_roll: ResMut<LastRoll>,
 ) {
     if rolling_cubes_counter.0 != 0 {
         return;
@@ -112,6 +121,7 @@ fn roll(
                                 roll_events.send(roll_input.to_roll_event(roll_cube));
                                 board.set_cube(roll_from_pos, None);
                                 board.set_cube(pos, Some(roll_cube));
+                                last_roll.0 = Some(*roll_input);
                                 return;
                             }
                         }
@@ -170,3 +180,6 @@ impl BoardPos {
 
 #[derive(Resource)]
 struct ShuffleCounter(pub usize);
+
+#[derive(Resource)]
+struct LastRoll(Option<RollInput>);
