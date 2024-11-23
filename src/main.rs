@@ -1,16 +1,23 @@
-use bevy::prelude::KeyCode::{ArrowDown, ArrowLeft, ArrowUp};
+mod keyboard;
+mod roll_events;
+
+use crate::keyboard::KeyboardPlugin;
+use crate::roll_events::{RollEvent, RollEventsPlugin};
 use bevy::prelude::*;
 use bevy_tweening::lens::TransformRotationLens;
 use bevy_tweening::{Animator, EaseFunction, Tween, TweenCompleted, TweeningPlugin};
 use std::time::Duration;
-use KeyCode::ArrowRight;
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
-        .add_plugins(TweeningPlugin)
+        .add_plugins((
+            DefaultPlugins,
+            TweeningPlugin,
+            RollEventsPlugin,
+            KeyboardPlugin,
+        ))
         .add_systems(Startup, setup)
-        .add_systems(Update, (keyboard_input, tween_completed))
+        .add_systems(Update, (roll, tween_completed))
         .run();
 }
 
@@ -63,8 +70,8 @@ fn setup(
     });
 }
 
-fn keyboard_input(
-    keys: Res<ButtonInput<KeyCode>>,
+fn roll(
+    mut roll_events: EventReader<RollEvent>,
     mut cube_q: Query<
         (
             Entity,
@@ -78,10 +85,10 @@ fn keyboard_input(
     mut cube_child_q: Query<(&mut Transform, &GlobalTransform), Without<Cube>>,
     mut commands: Commands,
 ) {
-    if keys.any_just_released([ArrowRight, ArrowLeft, ArrowUp, ArrowDown]) {
+    for roll_event in roll_events.read() {
         for (entity, mut transform, global_transform, mut cube, children) in cube_q.iter_mut() {
             if !cube.rotating {
-                let roll_translation = roll_translation(&keys);
+                let roll_translation = roll_translation(roll_event);
                 transform.translation += roll_translation;
                 commands.entity(entity).insert(Animator::new(
                     Tween::new(
@@ -94,12 +101,12 @@ fn keyboard_input(
                                     global_transform
                                         .affine()
                                         .inverse()
-                                        .transform_vector3(roll_axis(&keys)),
+                                        .transform_vector3(roll_axis(roll_event)),
                                     90.0f32.to_radians(),
                                 ),
                         },
                     )
-                    .with_completed_event(roll_event(&keys)),
+                    .with_completed_event(roll_event.get_id()),
                 ));
                 for &child in children.iter() {
                     if let Ok((mut transform_child, global_transform_child)) =
@@ -117,39 +124,21 @@ fn keyboard_input(
     }
 }
 
-fn roll_translation(button_input: &ButtonInput<KeyCode>) -> Vec3 {
-    if button_input.just_released(ArrowRight) {
-        Vec3::new(0.5, 0.0, 0.0)
-    } else if button_input.just_released(ArrowLeft) {
-        Vec3::new(-0.5, 0.0, 0.0)
-    } else if button_input.just_released(ArrowUp) {
-        Vec3::new(0.0, 0.5, 0.0)
-    } else {
-        Vec3::new(0.0, -0.5, 0.0)
+fn roll_translation(roll_event: &RollEvent) -> Vec3 {
+    match roll_event {
+        RollEvent::Right => Vec3::new(0.5, 0.0, 0.0),
+        RollEvent::Left => Vec3::new(-0.5, 0.0, 0.0),
+        RollEvent::Up => Vec3::new(0.0, 0.5, 0.0),
+        RollEvent::Down => Vec3::new(0.0, -0.5, 0.0),
     }
 }
 
-fn roll_axis(button_input: &ButtonInput<KeyCode>) -> Vec3 {
-    if button_input.just_released(ArrowRight) {
-        Vec3::Y
-    } else if button_input.just_released(ArrowLeft) {
-        Vec3::NEG_Y
-    } else if button_input.just_released(ArrowUp) {
-        Vec3::NEG_X
-    } else {
-        Vec3::X
-    }
-}
-
-fn roll_event(button_input: &ButtonInput<KeyCode>) -> u64 {
-    if button_input.just_released(ArrowRight) {
-        1
-    } else if button_input.just_released(ArrowLeft) {
-        2
-    } else if button_input.just_released(ArrowUp) {
-        3
-    } else {
-        4
+fn roll_axis(roll_event: &RollEvent) -> Vec3 {
+    match roll_event {
+        RollEvent::Right => Vec3::Y,
+        RollEvent::Left => Vec3::NEG_Y,
+        RollEvent::Up => Vec3::NEG_X,
+        RollEvent::Down => Vec3::X,
     }
 }
 
@@ -159,50 +148,17 @@ fn tween_completed(
     mut cube_child_q: Query<(&mut Transform, &GlobalTransform), (With<CubeChild>, Without<Cube>)>,
 ) {
     for tween_completed in tween_completed_event.read() {
-        if tween_completed.user_data == 1 {
-            for (mut transform, mut cube) in cube_q.iter_mut() {
-                transform.translation.x += 0.5;
-                cube.rotating = false;
-            }
-            for (mut transform_child, global_transform_child) in cube_child_q.iter_mut() {
-                transform_child.translation += global_transform_child
-                    .affine()
-                    .inverse()
-                    .transform_vector3(Vec3::new(-0.5, 0.0, 0.0));
-            }
-        } else if tween_completed.user_data == 2 {
-            for (mut transform, mut cube) in cube_q.iter_mut() {
-                transform.translation.x += -0.5;
-                cube.rotating = false;
-            }
-            for (mut transform_child, global_transform_child) in cube_child_q.iter_mut() {
-                transform_child.translation += global_transform_child
-                    .affine()
-                    .inverse()
-                    .transform_vector3(Vec3::new(0.5, 0.0, 0.0));
-            }
-        } else if tween_completed.user_data == 3 {
-            for (mut transform, mut cube) in cube_q.iter_mut() {
-                transform.translation.y += 0.5;
-                cube.rotating = false;
-            }
-            for (mut transform_child, global_transform_child) in cube_child_q.iter_mut() {
-                transform_child.translation += global_transform_child
-                    .affine()
-                    .inverse()
-                    .transform_vector3(Vec3::new(0.0, -0.5, 0.0));
-            }
-        } else if tween_completed.user_data == 4 {
-            for (mut transform, mut cube) in cube_q.iter_mut() {
-                transform.translation.y += -0.5;
-                cube.rotating = false;
-            }
-            for (mut transform_child, global_transform_child) in cube_child_q.iter_mut() {
-                transform_child.translation += global_transform_child
-                    .affine()
-                    .inverse()
-                    .transform_vector3(Vec3::new(0.0, 0.5, 0.0));
-            }
+        let roll_event = RollEvent::from_id(tween_completed.user_data);
+        let roll_trans = roll_translation(&roll_event);
+        for (mut transform, mut cube) in cube_q.iter_mut() {
+            transform.translation += roll_trans;
+            cube.rotating = false;
+        }
+        for (mut transform_child, global_transform_child) in cube_child_q.iter_mut() {
+            transform_child.translation -= global_transform_child
+                .affine()
+                .inverse()
+                .transform_vector3(roll_trans);
         }
     }
 }
