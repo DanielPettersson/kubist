@@ -33,21 +33,7 @@ fn main() {
         .run();
 }
 
-fn setup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(Plane3d::new(
-            Vec3::new(0.0, 0.0, 1.0),
-            Vec2::new(10.0, 10.0),
-        )),
-        material: materials.add(Color::srgb_u8(255, 127, 127)),
-        transform: Transform::from_xyz(0.0, 0.0, 0.0),
-        ..default()
-    });
-
+fn setup(mut commands: Commands) {
     commands.spawn(PointLightBundle {
         point_light: PointLight {
             shadows_enabled: true,
