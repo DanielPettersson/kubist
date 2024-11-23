@@ -9,7 +9,7 @@ impl Plugin for RollEventsPlugin {
     }
 }
 
-#[derive(Event, Debug)]
+#[derive(Event, Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum RollInput {
     Right,
     Left,
@@ -24,6 +24,15 @@ impl RollInput {
             RollInput::Left => RollEvent::Left(entity),
             RollInput::Up => RollEvent::Up(entity),
             RollInput::Down => RollEvent::Down(entity)
+        }
+    }
+    
+    pub fn is_opposite(&self, roll_input: RollInput) -> bool {
+        match self {
+            RollInput::Right => roll_input == RollInput::Left,
+            RollInput::Left => roll_input == RollInput::Right,
+            RollInput::Up => roll_input == RollInput::Down,
+            RollInput::Down => roll_input == RollInput::Up,
         }
     }
 }

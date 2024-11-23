@@ -3,19 +3,35 @@ use crate::roll_events::{RollEvent, RollInput};
 use crate::{GameState, SceneAssets};
 use bevy::app::{App, Plugin, Update};
 use bevy::prelude::{
-    Commands, Component, Entity, EventReader, EventWriter, OnEnter, Query, Res,
+    in_state, Commands, Component, Entity, EventReader, EventWriter, IntoSystemConfigs, Local,
+    NextState, OnEnter, Query, Res, ResMut, Resource, Startup,
 };
+use rand::Rng;
 
 pub struct BoardPlugin;
 
+const BOARD_SIZE: usize = 4;
+
 impl Plugin for BoardPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::InGame), create_board)
+        app.add_systems(Startup, init)
+            .add_systems(OnEnter(GameState::StartGame), setup)
+            .add_systems(Update, shuffle.run_if(in_state(GameState::StartGame)))
             .add_systems(Update, roll);
     }
 }
 
-fn create_board(mut commands: Commands, scene_assets: Res<SceneAssets>) {
+fn init(mut commands: Commands) {
+    commands.insert_resource(ShuffleCounter(0));
+}
+
+fn setup(
+    mut commands: Commands,
+    scene_assets: Res<SceneAssets>,
+    mut shuffle_counter: ResMut<ShuffleCounter>,
+) {
+    shuffle_counter.0 += 0;
+
     let mut board = Board {
         cubes: [[None; BOARD_SIZE]; BOARD_SIZE],
     };
@@ -36,16 +52,55 @@ fn create_board(mut commands: Commands, scene_assets: Res<SceneAssets>) {
     commands.spawn(board);
 }
 
+fn shuffle(
+    rolling_cubes_counter: Res<RollingCubesCounter>,
+    mut roll_inputs: EventWriter<RollInput>,
+    mut shuffle_counter: ResMut<ShuffleCounter>,
+    mut next_state: ResMut<NextState<GameState>>,
+    mut last_roll: Local<Option<RollInput>>,
+) {
+    if rolling_cubes_counter.0 == 0 {
+        let roll_input = random_roll(*last_roll);
+        roll_inputs.send(roll_input);
+
+        shuffle_counter.0 += 1;
+        *last_roll = Some(roll_input);
+    }
+
+    if shuffle_counter.0 > 50 {
+        next_state.set(GameState::InGame);
+    }
+}
+
+fn random_roll(last_roll_opt: Option<RollInput>) -> RollInput {
+    let mut rng = rand::thread_rng();
+    let i = rng.gen_range(0..4);
+    let roll = match i {
+        0 => RollInput::Right,
+        1 => RollInput::Left,
+        2 => RollInput::Down,
+        3 => RollInput::Up,
+        _ => unreachable!(),
+    };
+
+    if let Some(last_roll) = last_roll_opt {
+        if last_roll.is_opposite(roll) {
+            return random_roll(last_roll_opt);
+        }
+    }
+    roll
+}
+
 fn roll(
     mut roll_inputs: EventReader<RollInput>,
     mut roll_events: EventWriter<RollEvent>,
     mut query_board: Query<&mut Board>,
-    rolling_cubes_counter: Res<RollingCubesCounter>
+    rolling_cubes_counter: Res<RollingCubesCounter>,
 ) {
     if rolling_cubes_counter.0 != 0 {
         return;
-    } 
-    
+    }
+
     for roll_input in roll_inputs.read() {
         for mut board in query_board.iter_mut() {
             for y in 0..BOARD_SIZE {
@@ -66,8 +121,6 @@ fn roll(
         }
     }
 }
-
-const BOARD_SIZE: usize = 3;
 
 #[derive(Component, Debug)]
 struct Board {
@@ -114,3 +167,6 @@ impl BoardPos {
         BoardPos { x, y }
     }
 }
+
+#[derive(Resource)]
+struct ShuffleCounter(pub usize);

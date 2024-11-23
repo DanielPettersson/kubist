@@ -25,7 +25,7 @@ fn main() {
         .init_state::<GameState>()
         .add_loading_state(
             LoadingState::new(GameState::Loading)
-                .continue_to_state(GameState::InGame)
+                .continue_to_state(GameState::StartGame)
                 .load_collection::<SceneAssets>(),
         )
         .add_systems(Startup, setup)
@@ -66,7 +66,7 @@ fn setup(
     });
 
     commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0.0, 0.0, 10.0)
+        transform: Transform::from_xyz(0.0, 0.0, 7.0)
             .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
         ..default()
     });
@@ -76,6 +76,7 @@ fn setup(
 enum GameState {
     #[default]
     Loading,
+    StartGame,
     InGame,
 }
 

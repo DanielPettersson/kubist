@@ -2,7 +2,7 @@ use crate::roll_events::RollEvent;
 use bevy::app::{App, Update};
 use bevy::hierarchy::Children;
 use bevy::math::Quat;
-use bevy::prelude::{default, BuildChildren, Commands, Component, Entity, EventReader, GlobalTransform, Handle, InheritedVisibility, Plugin, Query, ResMut, Resource, Scene, SceneBundle, Startup, Transform, TransformBundle, Vec3, With, Without};
+use bevy::prelude::{default, BuildChildren, Commands, Component, Entity, EventReader, GlobalTransform, Handle, InheritedVisibility, Plugin, Query, Res, ResMut, Resource, Scene, SceneBundle, Startup, Transform, TransformBundle, Vec3, With, Without};
 use bevy_tweening::lens::TransformRotationLens;
 use bevy_tweening::{Animator, EaseFunction, Tween, TweenCompleted};
 use std::time::Duration;
@@ -18,9 +18,15 @@ impl Plugin for CubePlugin {
 
 fn init(mut commands: Commands) {
     commands.insert_resource(RollingCubesCounter(0));
+    commands.insert_resource(RollDuration(Duration::from_millis(300)));
 }
 
-pub fn spawn_cube(commands: &mut Commands, cube_child_scene_handle: Handle<Scene>, x: f32, y: f32) -> Entity {
+pub fn spawn_cube(
+    commands: &mut Commands,
+    cube_child_scene_handle: Handle<Scene>,
+    x: f32,
+    y: f32,
+) -> Entity {
     commands
         .spawn((
             TransformBundle::from_transform(Transform::from_xyz(x, y, 0.0)),
@@ -37,15 +43,17 @@ pub fn spawn_cube(commands: &mut Commands, cube_child_scene_handle: Handle<Scene
                 },
                 CubeChild { scale: 1. / 6. },
             ));
-        }).id()
+        })
+        .id()
 }
 
 fn roll(
+    mut commands: Commands,
     mut roll_events: EventReader<RollEvent>,
     mut rolling_cubes_counter: ResMut<RollingCubesCounter>,
     mut cube_q: Query<(Entity, &mut Transform, &GlobalTransform, &Children), With<Cube>>,
     mut cube_child_q: Query<(&mut Transform, &GlobalTransform, &CubeChild), Without<Cube>>,
-    mut commands: Commands,
+    roll_duration: Res<RollDuration>,
 ) {
     for roll_event in roll_events.read() {
         if rolling_cubes_counter.0 == 0 {
@@ -57,7 +65,7 @@ fn roll(
                 commands.entity(entity).insert(Animator::new(
                     Tween::new(
                         EaseFunction::QuadraticIn,
-                        Duration::from_millis(300),
+                        roll_duration.0,
                         TransformRotationLens {
                             start: transform.rotation,
                             end: transform.rotation
@@ -93,11 +101,11 @@ fn roll_completed(
 
         if let Ok((mut transform, children)) = cube_q.get_mut(tween_completed.entity) {
             transform.translation += roll_trans;
-            rolling_cubes_counter.0 -= 1;
-
+            
             for &child in children.iter() {
                 translate_child(&mut cube_child_q, child, roll_trans);
             }
+            rolling_cubes_counter.0 -= 1;
         }
     }
 }
@@ -128,3 +136,6 @@ struct CubeChild {
 
 #[derive(Resource)]
 pub struct RollingCubesCounter(pub usize);
+
+#[derive(Resource)]
+pub struct RollDuration(pub Duration);
