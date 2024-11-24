@@ -1,19 +1,22 @@
 use crate::roll_events::RollEvent;
+use crate::GameState;
 use bevy::app::{App, Update};
 use bevy::math::Quat;
-use bevy::prelude::{default, BuildChildren, Commands, Component, Entity, EventReader, GlobalTransform, Handle, InheritedVisibility, OnEnter, Plugin, Query, Res, ResMut, Resource, Scene, SceneBundle, Startup, Transform, TransformBundle, Vec3, With};
+use bevy::prelude::{default, in_state, BuildChildren, Commands, Component, Entity, EventReader, GlobalTransform, Handle, InheritedVisibility, IntoSystemConfigs, OnEnter, Plugin, Query, Res, ResMut, Resource, Scene, SceneBundle, Startup, Transform, TransformBundle, Vec3, With};
 use bevy_tweening::lens::{TransformPositionLens, TransformRotationLens};
 use bevy_tweening::{Animator, BoxedTweenable, EaseFunction, Tracks, Tween, TweenCompleted};
 use std::time::Duration;
 use EaseFunction::{QuadraticIn, QuadraticInOut, QuadraticOut};
-use crate::GameState;
 
 pub struct CubePlugin;
 
 impl Plugin for CubePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, init)
-            .add_systems(Update, (roll, roll_completed)).add_systems(OnEnter(GameState::InGame), enter_game);
+            .add_systems(OnEnter(GameState::StartGame), reset_roll_duration)
+            .add_systems(Update, shuffle_speed.run_if(in_state(GameState::StartGame)))
+            .add_systems(OnEnter(GameState::InGame), reset_roll_duration)
+            .add_systems(Update, (roll, roll_completed));
     }
 }
 
@@ -22,7 +25,16 @@ fn init(mut commands: Commands) {
     commands.insert_resource(RollDuration::default());
 }
 
-fn enter_game(mut roll_duration: ResMut<RollDuration>) {
+fn shuffle_speed(mut roll_events: EventReader<RollEvent>, mut roll_duration: ResMut<RollDuration>) {
+    for _ in roll_events.read() {
+        let new_roll_duration_ms = roll_duration.0.as_millis() as f32 * 0.92;
+        if new_roll_duration_ms > 75.0 {
+            roll_duration.0 = Duration::from_millis(new_roll_duration_ms as u64);
+        }
+    }
+}
+
+fn reset_roll_duration(mut roll_duration: ResMut<RollDuration>) {
     *roll_duration = RollDuration::default();
 }
 
@@ -70,14 +82,14 @@ fn roll(
                         half_duration,
                         TransformPositionLens {
                             start: transform.translation,
-                            end: transform.translation + roll_translation * 0.5 + Vec3::Z * 0.5,
+                            end: transform.translation + roll_translation * 0.5 + Vec3::Z,
                         },
                     )
                     .then(Tween::new(
                         QuadraticIn,
                         half_duration,
                         TransformPositionLens {
-                            start: transform.translation + roll_translation * 0.5 + Vec3::Z * 0.5,
+                            start: transform.translation + roll_translation * 0.5 + Vec3::Z,
                             end: transform.translation + roll_translation,
                         },
                     ))
@@ -123,7 +135,7 @@ struct Cube;
 pub struct RollingCubesCounter(pub usize);
 
 #[derive(Resource)]
-pub struct RollDuration(pub Duration);
+struct RollDuration(Duration);
 
 impl Default for RollDuration {
     fn default() -> Self {

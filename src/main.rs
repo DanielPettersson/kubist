@@ -3,11 +3,10 @@ mod cube;
 mod keyboard;
 mod roll_events;
 
-use crate::board::BoardPlugin;
+use crate::board::{BoardPlugin, BOARD_SIZE};
 use crate::cube::CubePlugin;
 use crate::keyboard::KeyboardPlugin;
 use crate::roll_events::RollEventsPlugin;
-use bevy::core_pipeline::motion_blur::{MotionBlur, MotionBlurBundle};
 use bevy::prelude::*;
 use bevy_asset_loader::asset_collection::AssetCollection;
 use bevy_asset_loader::prelude::{ConfigureLoadingState, LoadingState, LoadingStateAppExt};
@@ -39,7 +38,7 @@ fn setup(mut commands: Commands) {
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(10.0, 10.0, 10.0),
+        transform: Transform::from_xyz(5.0, 5.0, 10.0),
         ..default()
     });
 
@@ -48,24 +47,14 @@ fn setup(mut commands: Commands) {
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(-10.0, -10.0, 10.0),
+        transform: Transform::from_xyz(-7.0, -7.0, 10.0),
         ..default()
     });
 
-    commands.spawn((
-        Camera3dBundle {
-            transform: Transform::from_xyz(0.0, 0.0, 7.0)
-                .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
-            ..default()
-        },
-        MotionBlurBundle {
-            motion_blur: MotionBlur {
-                shutter_angle: 1.0,
-                samples: 3,
-            },
-            ..default()
-        },
-    ));
+    commands.spawn(Camera3dBundle {
+        transform: Transform::from_xyz(0.0, 0.0, BOARD_SIZE as f32 * 1.8).looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
+        ..default()
+    });
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, States)]

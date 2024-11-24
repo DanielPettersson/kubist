@@ -1,5 +1,4 @@
-use std::time::Duration;
-use crate::cube::{spawn_cube, RollDuration, RollingCubesCounter};
+use crate::cube::{spawn_cube, RollingCubesCounter};
 use crate::roll_events::{RollEvent, RollInput};
 use crate::{GameState, SceneAssets};
 use bevy::app::{App, Plugin, Update};
@@ -11,7 +10,7 @@ use rand::Rng;
 
 pub struct BoardPlugin;
 
-const BOARD_SIZE: usize = 3;
+pub const BOARD_SIZE: usize = 4;
 
 impl Plugin for BoardPlugin {
     fn build(&self, app: &mut App) {
@@ -61,17 +60,12 @@ fn shuffle(
     mut roll_inputs: EventWriter<RollInput>,
     mut shuffle_counter: ResMut<ShuffleCounter>,
     mut next_state: ResMut<NextState<GameState>>,
-    mut roll_duration: ResMut<RollDuration>,
     last_roll: Res<LastRoll>,
 ) {
     if rolling_cubes_counter.0 == 0 {
         let roll_input = random_roll(last_roll.0);
         roll_inputs.send(roll_input);
-
-        let new_roll_duration_ms = roll_duration.0.as_millis() as f32 * 0.95;
-        if new_roll_duration_ms > 75.0 {
-            roll_duration.0 = Duration::from_millis(new_roll_duration_ms as u64);
-        }
+        
         shuffle_counter.0 += 1;
     }
 
