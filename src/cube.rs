@@ -6,6 +6,7 @@ use bevy::prelude::{default, in_state, BuildChildren, Commands, Component, Entit
 use bevy_tweening::lens::{TransformPositionLens, TransformRotationLens};
 use bevy_tweening::{Animator, BoxedTweenable, EaseFunction, Tracks, Tween, TweenCompleted};
 use std::time::Duration;
+use bevy_mod_picking::PickableBundle;
 use EaseFunction::{QuadraticIn, QuadraticInOut, QuadraticOut};
 
 pub struct CubePlugin;
@@ -48,6 +49,7 @@ pub fn spawn_cube(
         .spawn((
             TransformBundle::from_transform(Transform::from_xyz(x, y, 0.5)),
             InheritedVisibility::default(),
+            PickableBundle::default(),
             Cube::default(),
         ))
         .with_children(|parent| {

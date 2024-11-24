@@ -10,6 +10,7 @@ use crate::roll_events::RollEventsPlugin;
 use bevy::prelude::*;
 use bevy_asset_loader::asset_collection::AssetCollection;
 use bevy_asset_loader::prelude::{ConfigureLoadingState, LoadingState, LoadingStateAppExt};
+use bevy_mod_picking::DefaultPickingPlugins;
 use bevy_tweening::TweeningPlugin;
 
 fn main() {
@@ -17,6 +18,7 @@ fn main() {
         .add_plugins((
             DefaultPlugins,
             TweeningPlugin,
+            DefaultPickingPlugins,
             RollEventsPlugin,
             KeyboardPlugin,
             CubePlugin,
@@ -52,7 +54,8 @@ fn setup(mut commands: Commands) {
     });
 
     commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0.0, 0.0, BOARD_SIZE as f32 * 1.8).looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
+        transform: Transform::from_xyz(0.0, 0.0, BOARD_SIZE as f32 * 1.8)
+            .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
         ..default()
     });
 }

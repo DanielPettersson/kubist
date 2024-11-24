@@ -2,10 +2,9 @@ use crate::cube::{spawn_cube, RollingCubesCounter};
 use crate::roll_events::{RollEvent, RollInput};
 use crate::{GameState, SceneAssets};
 use bevy::app::{App, Plugin, Update};
-use bevy::prelude::{
-    in_state, Commands, Component, Entity, EventReader, EventWriter, IntoSystemConfigs,
-    NextState, OnEnter, Query, Res, ResMut, Resource, Startup,
-};
+use bevy::prelude::{in_state, Commands, Component, Entity, EventReader, EventWriter, IntoSystemConfigs, NextState, OnEnter, Parent, Query, Res, ResMut, Resource, Startup};
+use bevy_mod_picking::events::Pointer;
+use bevy_mod_picking::prelude::Click;
 use rand::Rng;
 
 pub struct BoardPlugin;
@@ -17,6 +16,7 @@ impl Plugin for BoardPlugin {
         app.add_systems(Startup, init)
             .add_systems(OnEnter(GameState::StartGame), setup)
             .add_systems(Update, shuffle.run_if(in_state(GameState::StartGame)))
+            .add_systems(Update, handle_clicks.run_if(in_state(GameState::InGame)))
             .add_systems(Update, roll);
     }
 }
@@ -65,7 +65,7 @@ fn shuffle(
     if rolling_cubes_counter.0 == 0 {
         let roll_input = random_roll(last_roll.0);
         roll_inputs.send(roll_input);
-        
+
         shuffle_counter.0 += 1;
     }
 
@@ -91,6 +91,34 @@ fn random_roll(last_roll_opt: Option<RollInput>) -> RollInput {
         }
     }
     roll
+}
+
+fn handle_clicks(
+    query_board: Query<&Board>,
+    mut click_event_reader: EventReader<Pointer<Click>>,
+    mut roll_events: EventWriter<RollInput>,
+    cube_child_q: Query<&Parent>,
+) {
+    for click_event in click_event_reader.read() {
+        let mut cube = click_event.target;
+        while let Ok(parent) = cube_child_q.get(cube) {
+            cube = parent.get();
+        }
+        
+        for board in query_board.iter() {
+            if let Some(board_pos) = board.get_pos(cube) {
+                if board_pos.x < BOARD_SIZE - 1 && board.get_cube(board_pos.right()).is_none() {
+                    roll_events.send(RollInput::Right);
+                } else if board_pos.x > 0 && board.get_cube(board_pos.left()).is_none() {
+                    roll_events.send(RollInput::Left);
+                } else if board_pos.y < BOARD_SIZE - 1 && board.get_cube(board_pos.up()).is_none() {
+                    roll_events.send(RollInput::Up);
+                } else if board_pos.y > 0 && board.get_cube(board_pos.down()).is_none() {
+                    roll_events.send(RollInput::Down);
+                }
+            }
+        }
+    }
 }
 
 fn roll(
@@ -158,6 +186,17 @@ impl Board {
     fn set_cube(&mut self, pos: BoardPos, entity: Option<Entity>) {
         self.cubes[pos.y][pos.x] = entity;
     }
+
+    fn get_pos(&self, cube: Entity) -> Option<BoardPos> {
+        for y in 0..BOARD_SIZE {
+            for x in 0..BOARD_SIZE {
+                if self.cubes[y][x] == Some(cube) {
+                    return Some(BoardPos::new(x, y));
+                }
+            }
+        }
+        None
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -169,6 +208,22 @@ struct BoardPos {
 impl BoardPos {
     fn new(x: usize, y: usize) -> Self {
         BoardPos { x, y }
+    }
+
+    fn right(&self) -> Self {
+        BoardPos::new(self.x + 1, self.y)
+    }
+
+    fn left(&self) -> Self {
+        BoardPos::new(self.x - 1, self.y)
+    }
+
+    fn up(&self) -> Self {
+        BoardPos::new(self.x, self.y + 1)
+    }
+
+    fn down(&self) -> Self {
+        BoardPos::new(self.x, self.y - 1)
     }
 }
 
