@@ -2,14 +2,12 @@ use crate::cube::{spawn_cube, RollingCubesCounter};
 use crate::roll_events::{RollEvent, RollInput};
 use crate::{GameState, SceneAssets};
 use bevy::app::{App, Plugin, Update};
-use bevy::prelude::{in_state, Commands, Component, Entity, EventReader, EventWriter, IntoSystemConfigs, NextState, OnEnter, Parent, Query, Res, ResMut, Resource, Startup};
-use bevy_mod_picking::events::Pointer;
-use bevy_mod_picking::prelude::Click;
+use bevy::prelude::{in_state, Click, Commands, Component, Entity, EventReader, EventWriter, IntoSystemConfigs, NextState, OnEnter, Parent, Pointer, Query, Res, ResMut, Resource, Startup};
 use rand::Rng;
 
 pub struct BoardPlugin;
 
-pub const BOARD_SIZE: usize = 4;
+pub const BOARD_SIZE: usize = 3;
 
 impl Plugin for BoardPlugin {
     fn build(&self, app: &mut App) {

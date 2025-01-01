@@ -2,12 +2,16 @@ use crate::roll_events::RollEvent;
 use crate::GameState;
 use bevy::app::{App, Update};
 use bevy::math::Quat;
-use bevy::prelude::{default, in_state, BuildChildren, Commands, Component, Entity, EventReader, GlobalTransform, Handle, InheritedVisibility, IntoSystemConfigs, OnEnter, Plugin, Query, Res, ResMut, Resource, Scene, SceneBundle, Startup, Transform, TransformBundle, Vec3, With};
+use bevy::prelude::EaseFunction::{QuadraticIn, QuadraticInOut, QuadraticOut};
+use bevy::prelude::{
+    in_state, BuildChildren, ChildBuild, Commands, Component, Entity, EventReader,
+    GlobalTransform, Handle, InheritedVisibility, IntoSystemConfigs, OnEnter, Plugin, Query, Res,
+    ResMut, Resource, Scene, SceneRoot, Startup, Transform, Vec3,
+    With,
+};
 use bevy_tweening::lens::{TransformPositionLens, TransformRotationLens};
-use bevy_tweening::{Animator, BoxedTweenable, EaseFunction, Tracks, Tween, TweenCompleted};
+use bevy_tweening::{Animator, BoxedTweenable, Tracks, Tween, TweenCompleted};
 use std::time::Duration;
-use bevy_mod_picking::PickableBundle;
-use EaseFunction::{QuadraticIn, QuadraticInOut, QuadraticOut};
 
 pub struct CubePlugin;
 
@@ -47,18 +51,16 @@ pub fn spawn_cube(
 ) -> Entity {
     commands
         .spawn((
-            TransformBundle::from_transform(Transform::from_xyz(x, y, 0.5)),
+            Transform::from_xyz(x, y, 0.5),
             InheritedVisibility::default(),
-            PickableBundle::default(),
             Cube::default(),
         ))
         .with_children(|parent| {
-            parent.spawn((SceneBundle {
-                scene: cube_child_scene_handle,
-                transform: Transform::from_translation(Vec3::new(0.0, -0.5, 0.0))
+            parent.spawn((
+                SceneRoot::from(cube_child_scene_handle),
+                Transform::from_translation(Vec3::new(0.0, -0.5, 0.0))
                     .with_scale(Vec3::splat(1. / 6.)),
-                ..default()
-            },));
+            ));
         })
         .id()
 }

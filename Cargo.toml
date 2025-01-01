@@ -4,10 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = { version = "0.14.2", features = ["dynamic_linking", "bevy_gltf"] }
-bevy_tweening = "0.11.0"
-bevy_asset_loader = "0.21.0"
-bevy_mod_picking = "0.20.1"
+bevy = { version = "0.15.0", features = ["dynamic_linking", "bevy_gltf"] }
+bevy_tweening = "0.12.0"
+bevy_asset_loader = "0.22.0"
 rand = "0.8.5"
 log = { version = "*", features = ["max_level_debug", "release_max_level_warn"] }
 

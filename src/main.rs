@@ -10,7 +10,6 @@ use crate::roll_events::RollEventsPlugin;
 use bevy::prelude::*;
 use bevy_asset_loader::asset_collection::AssetCollection;
 use bevy_asset_loader::prelude::{ConfigureLoadingState, LoadingState, LoadingStateAppExt};
-use bevy_mod_picking::DefaultPickingPlugins;
 use bevy_tweening::TweeningPlugin;
 
 fn main() {
@@ -18,7 +17,7 @@ fn main() {
         .add_plugins((
             DefaultPlugins,
             TweeningPlugin,
-            DefaultPickingPlugins,
+            MeshPickingPlugin,
             RollEventsPlugin,
             KeyboardPlugin,
             CubePlugin,
@@ -35,29 +34,27 @@ fn main() {
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn(PointLightBundle {
-        point_light: PointLight {
+    commands.spawn((
+        PointLight {
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(5.0, 5.0, 10.0),
-        ..default()
-    });
+        Transform::from_xyz(5.0, 5.0, 10.0),
+    ));
 
-    commands.spawn(PointLightBundle {
-        point_light: PointLight {
+    commands.spawn((
+        PointLight {
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(-7.0, -7.0, 10.0),
-        ..default()
-    });
+        Transform::from_xyz(-7.0, -7.0, 10.0),
+    ));
 
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0.0, 0.0, BOARD_SIZE as f32 * 1.8)
+    commands.spawn((
+        Camera3d::default(),
+        Transform::from_xyz(0.0, 0.0, BOARD_SIZE as f32 * 1.8)
             .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
-        ..default()
-    });
+    ));
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, States)]
