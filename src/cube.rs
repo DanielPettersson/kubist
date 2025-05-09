@@ -53,7 +53,7 @@ pub fn spawn_cube(
         .spawn((
             Transform::from_xyz(x, y, 0.5),
             InheritedVisibility::default(),
-            Cube::default(),
+            Cube,
         ))
         .with_children(|parent| {
             parent.spawn((

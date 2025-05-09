@@ -18,7 +18,7 @@ pub enum RollInput {
 }
 
 impl RollInput {
-    pub fn to_roll_event(&self, entity: Entity) -> RollEvent {
+    pub fn get_roll_event(&self, entity: Entity) -> RollEvent {
         match self {
             RollInput::Right => RollEvent::Right(entity),
             RollInput::Left => RollEvent::Left(entity),

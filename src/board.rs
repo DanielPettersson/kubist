@@ -135,10 +135,10 @@ fn roll(
             for y in 0..BOARD_SIZE {
                 for x in 0..BOARD_SIZE {
                     let pos = BoardPos::new(x, y);
-                    if let None = board.get_cube(pos) {
+                    if board.get_cube(pos).is_none() {
                         if let Some(roll_from_pos) = board.get_roll_from_pos(pos, roll_input) {
                             if let Some(roll_cube) = board.get_cube(roll_from_pos) {
-                                roll_events.send(roll_input.to_roll_event(roll_cube));
+                                roll_events.send(roll_input.get_roll_event(roll_cube));
                                 board.set_cube(roll_from_pos, None);
                                 board.set_cube(pos, Some(roll_cube));
                                 last_roll.0 = Some(*roll_input);
